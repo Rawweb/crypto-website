@@ -164,7 +164,92 @@ const passwordSuccessfulTemplate = username => `
   </div>
 `;
 
+const notificationEmailTemplate = (username, title, content) => {
+  return `
+  <div style="background:#f5f7fb;padding:40px 0;">
+    <div style="
+      max-width:600px;
+      margin:auto;
+      background:#ffffff;
+      border-radius:10px;
+      padding:30px;
+      font-family:Arial, sans-serif;
+      box-shadow:0 4px 12px rgba(0,0,0,0.08);
+    ">
+
+      <!-- LOGO -->
+      <div style="margin-bottom:25px;">
+        <img src="cid:logo" style="height:45px;" alt="RawCrypto Logo" />
+      </div>
+
+      <!-- TITLE -->
+      <h2 style="color:#111827;margin-bottom:10px;">
+        ${title}
+      </h2>
+
+      <!-- GREETING -->
+      <p style="font-size:15px;color:#374151;">
+        Hello ${username || 'there'},
+      </p>
+
+      <!-- MESSAGE BODY -->
+      <div style="
+        font-size:15px;
+        color:#4b5563;
+        line-height:1.6;
+        margin-top:15px;
+      ">
+        ${content}
+      </div>
+
+      <!-- CTA (optional placeholder) -->
+      <div style="margin-top:30px;">
+        <a href="${process.env.CLIENT_URL}"
+          style="
+            display:inline-block;
+            padding:12px 22px;
+            background:#091242;
+            color:#ffffff;
+            border-radius:6px;
+            text-decoration:none;
+            font-size:14px;
+            font-weight:bold;
+          ">
+          Go to Dashboard
+        </a>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="text-align:center;margin-top:20px;">
+      <p style="font-size:13px;color:#091242;font-weight:bold;margin:0;">
+        RawCrypto
+        <span style="color:#6c7280;font-weight:normal;">
+          — Your Gateway to Secure Crypto Growth.
+        </span>
+      </p>
+
+      <p style="font-size:12px;color:#6c7280;margin-top:6px;">
+        Need help? Contact us at
+        <a href="mailto:${process.env.ADMIN_EMAIL}"
+           style="color:#091242;font-weight:bold;text-decoration:none;">
+          ${process.env.ADMIN_EMAIL}
+        </a>
+      </p>
+
+      <p style="font-size:12px;color:#aaa;margin-top:15px;">
+        © ${new Date().getFullYear()} RawCrypto. All rights reserved.
+      </p>
+    </div>
+  </div>
+  `;
+};
+
+
+
+
 module.exports = {
   emailSuccesfulTemplate,
-  passwordSuccessfulTemplate
+  passwordSuccessfulTemplate,
+  notificationEmailTemplate,
 }

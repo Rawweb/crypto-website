@@ -23,6 +23,11 @@ const walletSchema = new mongoose.Schema(
       default: 0,
     },
 
+    lockedBalance: {
+      type: Number,
+      default: 0,
+    },
+
     usdtAddress: {
       type: String,
       default: null,
@@ -34,3 +39,4 @@ const walletSchema = new mongoose.Schema(
 const Wallet = mongoose.model('Wallet', walletSchema);
 
 module.exports = Wallet;
+ 

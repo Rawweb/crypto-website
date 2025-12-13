@@ -22,6 +22,10 @@ const adminWalletRoutes = require('./routes/adminWalletRoutes');
 const investMentRoutes = require('./routes/investmentRoutes');
 const adminInvestmentRoutes = require('./routes/adminInvestmentRoutes');
 const adminUserRoutes = require('./routes/adminUserRoutes');
+const adminTransactionLogRoutes = require('./routes/adminTransactionRoutes');
+const adminStatsRoutes = require('./routes/adminStatsRoutes');
+const adminNotificationRoues = require('./routes/adminNotificationRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
@@ -49,6 +53,10 @@ app.use('/api/admin/wallet', adminWalletRoutes);
 app.use('/api/investments', investMentRoutes);
 app.use('/api/admin/investments', adminInvestmentRoutes);
 app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/admin/transactions', adminTransactionLogRoutes);
+app.use('/api/admin/stats', adminStatsRoutes);
+app.use('/api/admin/notifications', adminNotificationRoues);
+app.use('/api/notifications', notificationRoutes);
 
 const PORT = process.env.PORT || 6000;
 

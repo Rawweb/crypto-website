@@ -57,7 +57,7 @@ const getUserById = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const wallet = await Wallet.findOne({ userId: user._id });
-    const referrals = await Referral.find({ referredBy: user._id });
+    const referrals = await Referral.find({ referralId: user._id });
 
     res.json({ user, wallet, referrals });
   } catch (error) {

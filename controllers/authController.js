@@ -72,7 +72,7 @@ const registerUser = async (req, res) => {
       userId: user._id,
       balance: 0,
       profitBalance: 0,
-      referredBalance: 0,
+      referralBalance: 0,
     });
 
     // create referral relationship
