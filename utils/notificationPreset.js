@@ -53,6 +53,30 @@ const notificationPresets = {
       <p>${message}</p>
     `,
   },
+
+  INVESTMENT_CREATED: {
+    title: 'Investment Successful',
+    body: ({ planName, amount }) => `
+    <p>Your investment of <b>${amount}</b> in the <b>${planName}</b> plan was successful.</p>
+    <p>You will start earning returns based on the plan schedule.</p>
+  `,
+  },
+
+  ROI_CREDITED: {
+    title: 'ROI Credited',
+    body: ({ amount }) => `
+    <p>Your return on investment of <b>${amount}</b> has been credited to your wallet.</p>
+    <p>Keep growing your portfolio 🚀</p>
+  `,
+  },
+
+  INVESTMENT_COMPLETED: {
+    title: 'Investment Completed',
+    body: ({ planName }) => `
+    <p>Your investment in the <b>${planName}</b> plan has been completed.</p>
+    <p>You can reinvest or withdraw your funds anytime.</p>
+  `,
+  },
 };
 
 module.exports = notificationPresets;

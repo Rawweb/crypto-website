@@ -6,6 +6,12 @@ const TransactionalLog = require('../models/transactionalLogModel');
 const Referral = require('../models/referralModel');
 const ReferralBonus = require('../models/referralBonusModel');
 
+const Notification = require('../models/notificationModel');
+const notificationPresets = require('../utils/notificationPreset');
+const { notificationEmailTemplate } = require('../utils/emailTemplate');
+const sendEmail = require('../utils/sendEmail');
+const User = require('../models/userModel');
+
 /* ============================
         USER FUNCTIONS
 ============================ */
@@ -59,7 +65,6 @@ const investInPlan = async (req, res) => {
       });
     }
 
-    // start "transaction" session
     session.startTransaction();
 
     // find wallet inside session
@@ -120,7 +125,6 @@ const investInPlan = async (req, res) => {
       { session }
     );
 
-    // commit all
     await session.commitTransaction();
     session.endSession();
 
@@ -161,6 +165,33 @@ const investInPlan = async (req, res) => {
           });
         }
       }
+    }
+
+    // 🔔 Auto notification: Investment created
+    try {
+      const preset = notificationPresets.INVESTMENT_CREATED;
+      const user = await User.findById(req.user._id);
+
+      const body = preset.body({
+        planName: plan.name,
+        amount: investment.amount,
+      });
+
+      const html = notificationEmailTemplate(
+        user.username,
+        preset.title,
+        body
+      );
+
+      await sendEmail(user.email, preset.title, html);
+
+      await Notification.create({
+        userId: user._id,
+        title: preset.title,
+        message: body,
+      });
+    } catch (err) {
+      console.error('Investment created notification failed:', err);
     }
 
     return res.json({
@@ -210,7 +241,6 @@ const createPlan = async (req, res) => {
       maxMultiplier,
     } = req.body;
 
-    // validate roiType and durationDays
     if (roiType === 'daily' && durationDays < 1) {
       return res.status(400).json({
         message: 'Daily plans must be at least 1 day',
@@ -264,7 +294,7 @@ const getAllInvestments = async (req, res) => {
   }
 };
 
-//  edit plan
+// edit plan
 const updatePlan = async (req, res) => {
   try {
     const { planId } = req.params;
@@ -283,7 +313,7 @@ const updatePlan = async (req, res) => {
   }
 };
 
-//  delete plan
+// delete plan
 const deletePlan = async (req, res) => {
   try {
     await InvestmentPlan.findByIdAndDelete(req.params.planId);
@@ -308,20 +338,12 @@ const generateProfits = async () => {
   }).populate('planId');
 
   for (const inv of investments) {
-    // stop ROI if investment already expired
-    if (inv.endDate <= now) {
-      continue;
-    }
+    if (inv.endDate <= now) continue;
 
-    // calculate ROI amount
     const roiAmount = Number(((inv.amount * inv.planId.roi) / 100).toFixed(2));
+    if (roiAmount <= 0) continue;
 
-    if (roiAmount <= 0) {
-      continue;
-    }
-
-    // OPTIONAL: profit cap protection
-    const maxMultiplier = inv.planId.maxMultiplier || 3; // e.g. max total profit = 3x original amount
+    const maxMultiplier = inv.planId.maxMultiplier || 3;
     const maxProfit = inv.amount * maxMultiplier;
     const remainingAllowed = maxProfit - inv.profitEarned;
 
@@ -331,15 +353,12 @@ const generateProfits = async () => {
       await inv.save();
       continue;
     }
-    // cast the profit if needed
+
     const creditedProfit = Math.min(roiAmount, remainingAllowed);
 
-    // update investment
     inv.profitEarned += creditedProfit;
 
-    // set next cycle
     const nextTime = new Date(inv.nextProfitTime);
-
     if (inv.planId.roiType === 'daily')
       nextTime.setDate(nextTime.getDate() + 1);
     if (inv.planId.roiType === 'weekly')
@@ -350,12 +369,8 @@ const generateProfits = async () => {
     inv.nextProfitTime = nextTime;
     await inv.save();
 
-    // credit profit to wallet
     const wallet = await Wallet.findOne({ userId: inv.userId });
-
-    if (!wallet) {
-      continue;
-    }
+    if (!wallet) continue;
 
     if (inv.planId.profitDestination === 'profit') {
       wallet.profitBalance += creditedProfit;
@@ -371,6 +386,29 @@ const generateProfits = async () => {
       amount: creditedProfit,
       description: 'ROI credited',
     });
+
+    // 🔔 Auto notification: ROI credited
+    try {
+      const preset = notificationPresets.ROI_CREDITED;
+      const user = await User.findById(inv.userId);
+
+      const body = preset.body({ amount: creditedProfit });
+      const html = notificationEmailTemplate(
+        user.username,
+        preset.title,
+        body
+      );
+
+      await sendEmail(user.email, preset.title, html);
+
+      await Notification.create({
+        userId: user._id,
+        title: preset.title,
+        message: body,
+      });
+    } catch (err) {
+      console.error('ROI credited notification failed:', err);
+    }
   }
 };
 
@@ -381,11 +419,34 @@ const closeCompletedInvestments = async () => {
   const investments = await Investment.find({
     status: 'active',
     endDate: { $lte: now },
-  });
+  }).populate('planId');
 
   for (const inv of investments) {
     inv.status = 'completed';
     await inv.save();
+
+    // 🔔 Auto notification: Investment completed
+    try {
+      const preset = notificationPresets.INVESTMENT_COMPLETED;
+      const user = await User.findById(inv.userId);
+
+      const body = preset.body({ planName: inv.planId.name });
+      const html = notificationEmailTemplate(
+        user.username,
+        preset.title,
+        body
+      );
+
+      await sendEmail(user.email, preset.title, html);
+
+      await Notification.create({
+        userId: user._id,
+        title: preset.title,
+        message: body,
+      });
+    } catch (err) {
+      console.error('Investment completed notification failed:', err);
+    }
   }
 };
 

@@ -60,7 +60,7 @@ app.use('/api/admin/transactions', adminTransactionLogRoutes);
 app.use('/api/admin/stats', adminStatsRoutes);
 app.use('/api/admin/notifications', adminNotificationRoues);
 app.use('/api/notifications', notificationRoutes);
-
+app.use('/api/faqs', faqRoutes);
 app.use('/api/pages', pageRoutes);
 app.use('/api/banners', bannerRoutes);
 

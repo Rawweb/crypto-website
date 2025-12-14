@@ -1,20 +1,28 @@
 const express = require('express');
+const router = express.Router();
 const { protect, admin } = require('../middlewares/authMiddleware');
+
 const {
-  createBanner,
-  updateBanner,
+  getAllBannersAdmin,
+  createBannerDraft,
+  updateBannerDraft,
+  publishBanner,
+  restoreBannerVersion,
   deleteBanner,
   getActiveBanners,
 } = require('../controllers/bannerController');
 
-const router = express.Router();
+
+// admin
+router.get('/admin/all', protect, admin, getAllBannersAdmin);
+router.post('/admin/draft', protect, admin, createBannerDraft);
+router.put('/admin/draft/:id', protect, admin, updateBannerDraft);
+router.put('/admin/publish/:id', protect, admin, publishBanner);
+router.put('/admin/restore/:versionIndex/:id', protect, admin, restoreBannerVersion);
+router.delete('/admin/delete/:id', protect, admin, deleteBanner);
 
 // public
 router.get('/', getActiveBanners);
 
-// admin
-router.post('/', protect, admin, createBanner);
-router.put('/:id', protect, admin, updateBanner);
-router.delete('/:id', protect, admin, deleteBanner);
 
 module.exports = router;

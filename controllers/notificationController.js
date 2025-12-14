@@ -9,6 +9,16 @@ const getNotifications = async (req, res) => {
   res.json(notifications);
 };
 
+// get unread notification count
+const getUnreadNotificationCount = async (req, res) => {
+  const count = await Notification.countDocuments({
+    userId: req.user._id,
+    isRead: false,
+  });
+
+  res.json({ unread: count });
+};
+
 // mark as read
 const markAsRead = async (req, res) => {
   await Notification.findOneAndUpdate(
@@ -19,4 +29,4 @@ const markAsRead = async (req, res) => {
   res.json({ message: 'Notification marked as read' });
 };
 
-module.exports = { getNotifications, markAsRead };
+module.exports = { getNotifications, markAsRead, getUnreadNotificationCount };

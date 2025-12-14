@@ -1,17 +1,38 @@
 const mongoose = require('mongoose');
 
+const bannerVersionSchema = new mongoose.Schema(
+  {
+    title: String,
+    message: String,
+    targetPage: String,
+    updatedAt: Date,
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+  },
+  { _id: false }
+);
+
 const bannerSchema = new mongoose.Schema(
   {
     title: String,
     message: String,
+
     targetPage: {
-      type: String, // home, dashboard, all
+      type: String,
       default: 'all',
     },
-    isActive: {
-      type: Boolean,
-      default: true,
+
+    status: {
+      type: String,
+      enum: ['draft', 'published'],
+      default: 'draft',
     },
+
+    publishedAt: Date,
+
+    versions: [bannerVersionSchema],
   },
   { timestamps: true }
 );
