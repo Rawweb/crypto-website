@@ -26,6 +26,9 @@ const adminTransactionLogRoutes = require('./routes/adminTransactionRoutes');
 const adminStatsRoutes = require('./routes/adminStatsRoutes');
 const adminNotificationRoues = require('./routes/adminNotificationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const faqRoutes = require('./routes/faqRoutes');
+const pageRoutes = require('./routes/pageRoutes');
+const bannerRoutes = require('./routes/bannerRoutes');
 
 const app = express();
 
@@ -57,6 +60,9 @@ app.use('/api/admin/transactions', adminTransactionLogRoutes);
 app.use('/api/admin/stats', adminStatsRoutes);
 app.use('/api/admin/notifications', adminNotificationRoues);
 app.use('/api/notifications', notificationRoutes);
+
+app.use('/api/pages', pageRoutes);
+app.use('/api/banners', bannerRoutes);
 
 const PORT = process.env.PORT || 6000;
 
