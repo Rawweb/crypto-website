@@ -35,10 +35,13 @@ const app = express();
 
 //middlewares
 app.use(express.json());
-const allowedOrigins = [process.env.CLIENT_URL];
+
+const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173'].filter(
+  Boolean
+);
 
 const corsOptions = {
-  origin: function (origin, callback) {
+  origin(origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -46,19 +49,11 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 app.use(cors(corsOptions));
-
-// Explicit preflight using SAME options
-app.options('*', cors(corsOptions));
-
-// test route
-app.get('/', (req, res) => {
-  res.send('Crypto investment API is running');
-});
 
 // routes
 app.use('/api/auth', authRoutes);
