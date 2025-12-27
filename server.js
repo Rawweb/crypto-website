@@ -55,6 +55,11 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+//test
+app.get('/', (req, res) => {
+  res.send('Crypto API Is Running');
+});
+
 // routes
 app.use('/api/auth', authRoutes);
 app.use('/api', dashboardRoutes);
