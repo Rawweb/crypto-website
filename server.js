@@ -35,18 +35,25 @@ const app = express();
 
 //middlewares
 app.use(express.json());
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || origin === process.env.CLIENT_URL) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,
-  })
-);
+const allowedOrigins = [process.env.CLIENT_URL];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+
+// Explicit preflight using SAME options
+app.options('*', cors(corsOptions));
 
 // test route
 app.get('/', (req, res) => {
