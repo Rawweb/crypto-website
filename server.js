@@ -24,7 +24,7 @@ const adminInvestmentRoutes = require('./routes/adminInvestmentRoutes');
 const adminUserRoutes = require('./routes/adminUserRoutes');
 const adminTransactionLogRoutes = require('./routes/adminTransactionRoutes');
 const adminStatsRoutes = require('./routes/adminStatsRoutes');
-const adminNotificationRoues = require('./routes/adminNotificationRoutes');
+const adminNotificationRoutes = require('./routes/adminNotificationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const faqRoutes = require('./routes/faqRoutes');
 const pageRoutes = require('./routes/pageRoutes');
@@ -37,7 +37,13 @@ const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: (origin, callback) => {
+      if (!origin || origin === process.env.CLIENT_URL) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );
@@ -59,7 +65,7 @@ app.use('/api/admin/investments', adminInvestmentRoutes);
 app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin/transactions', adminTransactionLogRoutes);
 app.use('/api/admin/stats', adminStatsRoutes);
-app.use('/api/admin/notifications', adminNotificationRoues);
+app.use('/api/admin/notifications', adminNotificationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/pages', pageRoutes);
@@ -69,5 +75,5 @@ app.use('/api/contact', contactMessageRoutes);
 const PORT = process.env.PORT || 6000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
