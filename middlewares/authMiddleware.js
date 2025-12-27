@@ -28,6 +28,16 @@ const protect = async (req, res, next) => {
   }
 };
 
+// middleware to check if the user is verified
+const verifiedOnly = (req, res, next) => {
+  if (!req.user.isVerified) {
+    return res.status(403).json({
+      message: 'Please verify your email to continue',
+    });
+  }
+  next();
+};
+
 // middleware to check if the user is an admin
 const admin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
@@ -37,4 +47,4 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin };
+module.exports = { protect, verifiedOnly, admin };

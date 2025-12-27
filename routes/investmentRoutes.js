@@ -1,11 +1,11 @@
 const express = require('express')
 const { getAllPlans, investInPlan, getUserInvestments } = require('../controllers/investmentController')
-const { protect } = require('../middlewares/authMiddleware')
+const { protect, verifiedOnly } = require('../middlewares/authMiddleware')
 
 const router = express.Router()
 
-router.get('/plans', protect, getAllPlans)
-router.post('/invest', protect, investInPlan)
-router.get('/my-investments', protect, getUserInvestments)
+router.get('/plans', protect, verifiedOnly, getAllPlans)
+router.post('/invest', protect, verifiedOnly, investInPlan)
+router.get('/my-investments', protect, verifiedOnly, getUserInvestments)
 
 module.exports = router

@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const referralCode = require('../utils/referralCode');
 const Referral = require('../models/referralModel');
 const Wallet = require('../models/walletModel');
+const { sendVerificationEmailLogic} = require('./verificationController');
+
 
 // generate JWT
 const generateToken = id => {
@@ -84,11 +86,15 @@ const registerUser = async (req, res) => {
       });
     }
 
+    // send verification email
+    await sendVerificationEmailLogic(user);
+
     // generate token
     const token = generateToken(user._id);
 
     //send response
     res.status(201).json({
+      message: 'Registration successful. Please verify your email.',
       user: {
         id: user._id,
         username: user.username,
@@ -96,6 +102,7 @@ const registerUser = async (req, res) => {
         referralCode: user.referralCode,
         referredBy: user.referredBy,
         role: user.role,
+        isVerified: user.isVerified,
       },
       token,
     });
@@ -149,6 +156,7 @@ const loginUser = async (req, res) => {
         referralCode: user.referralCode,
         referredBy: user.referredBy,
         role: user.role,
+        isVerified: user.isVerified,
       },
       token,
     });

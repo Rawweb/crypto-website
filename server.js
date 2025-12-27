@@ -29,6 +29,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const faqRoutes = require('./routes/faqRoutes');
 const pageRoutes = require('./routes/pageRoutes');
 const bannerRoutes = require('./routes/bannerRoutes');
+const contactMessageRoutes = require('./routes/contactMessageRoutes');
 
 const app = express();
 
@@ -63,6 +64,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/pages', pageRoutes);
 app.use('/api/banners', bannerRoutes);
+app.use('/api/contact', contactMessageRoutes);
 
 const PORT = process.env.PORT || 6000;
 

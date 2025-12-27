@@ -4,56 +4,26 @@ const generateOTP = require('../utils/otp');
 const sendEmail = require('../utils/sendEmail');
 const { emailSuccesfulTemplate } = require('../utils/emailTemplate');
 
-// send email verification
-const sendVerificationEmail = async (req, res) => {
-  try {
-    const user = req.user;
+const sendVerificationEmailLogic = async user => {
+  if (!user || user.isVerified) return;
 
-    // check if user exists
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+  // delete old tokens
+  await verificationToken.deleteMany({
+    userId: user._id,
+    purpose: 'emailVerification',
+  });
 
-    // check if user is already verified
-    if (user.isVerified) {
-      return res.status(400).json({ message: 'User is already verified' });
-    }
+  const otp = generateOTP();
 
-    // RATE LIMITING: prevent requesting OTP more than once per minute
-    const lastOTP = await verificationToken
-      .findOne({
-        userId: user._id,
-        purpose: 'emailVerification',
-      })
-      .sort({ createdAt: -1 });
+  await verificationToken.create({
+    userId: user._id,
+    token: otp,
+    purpose: 'emailVerification',
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+  });
 
-    if (lastOTP && lastOTP.createdAt > Date.now() - 60 * 1000) {
-      return res.status(429).json({
-        message: 'Please wait a minute before requesting another OTP',
-      });
-    }
-
-    // remove older tokens before creating new one
-    await verificationToken.deleteMany({
-      userId: user._id,
-      purpose: 'emailVerification',
-    });
-
-    // generate OTP
-    const otp = generateOTP();
-    console.log('Email Verification OTP:', otp);
-
-    // Store OTP with expiration
-    await verificationToken.create({
-      userId: user._id,
-      token: otp,
-      purpose: 'emailVerification',
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
-    });
-
-    // build the email message
-    const subject = 'Verify Your Email';
-    const html = `
+  const subject = 'Verify Your Email';
+  const html = `
   <div style="background: #f5f7fb; padding: 40px;">
     <div style="
       max-width: 600px; 
@@ -141,13 +111,15 @@ const sendVerificationEmail = async (req, res) => {
   </div>
 `;
 
-    // send email
-    await sendEmail(user.email, subject, html);
-  
+  await sendEmail(user.email, subject, html);
+};
 
+// send email verification
+const sendVerificationEmail = async (req, res) => {
+  try {
+    await sendVerificationEmailLogic(req.user);
     res.json({ message: 'Verification email sent' });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -193,7 +165,7 @@ const verifyEmail = async (req, res) => {
 
     await sendEmail(
       user.email,
-      "Email Verified Successfully",
+      'Email Verified Successfully',
       emailSuccesfulTemplate(user.username)
     );
 
@@ -204,4 +176,8 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-module.exports = { sendVerificationEmail, verifyEmail };
+module.exports = {
+  sendVerificationEmailLogic,
+  sendVerificationEmail,
+  verifyEmail,
+};
