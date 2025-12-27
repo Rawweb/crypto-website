@@ -15,7 +15,7 @@ const depositSchema = new mongoose.Schema(
 
     paymentProof: {
       type: String, // URL or path to the payment proof image
-      default: null,
+      required: true,
     },
 
     status: {
