@@ -3,6 +3,7 @@ const Wallet = require('../models/walletModel');
 const Deposit = require('../models/depositModel');
 const Withdrawal = require('../models/withdrawalModel');
 const TransactionalLog = require('../models/transactionalLogModel');
+const SavedAddress = require('../models/savedAddressModel');
 const User = require('../models/userModel');
 
 const Notification = require('../models/notificationModel');
@@ -39,41 +40,66 @@ const getWallet = async (req, res) => {
 // CREATE deposit request
 const createDeposit = async (req, res) => {
   try {
-    const { amount, paymentProof } = req.body;
+    const { amount } = req.body;
 
     if (!amount || amount <= 0) {
-      return res.status(400).json({ message: 'Invalid deposit amount' });
+      return res.status(400).json({
+        message: 'Invalid deposit amount',
+      });
     }
 
-    if (!paymentProof) {
-      return res.status(400).json({ message: 'Payment proof is required' });
+    if (!req.file) {
+      return res.status(400).json({
+        message: 'Deposit proof image is required',
+      });
     }
 
-    const existing = await Deposit.findOne({
-      paymentProof,
+    const { path, filename } = req.file; //
+
+    // 1. DUPLICATE PROOF CHECK (GLOBAL)
+    const existingProof = await Deposit.findOne({
+      proofPublicId: filename,
+    });
+
+    if (existingProof) {
+      return res.status(400).json({
+        message: 'This payment proof has already been used',
+      });
+    }
+
+    // 2. DEPOSIT COOLDOWN (PER USER)
+    const COOLDOWN_MINUTES = 1;
+
+    const recentDeposit = await Deposit.findOne({
+      userId: req.user._id,
+      createdAt: {
+        $gte: new Date(Date.now() - COOLDOWN_MINUTES * 60 * 1000),
+      },
       status: { $in: ['pending', 'approved'] },
     });
 
-    if (existing) {
-      return res
-        .status(400)
-        .json({ message: 'Payment proof already used in another deposit' });
+    if (recentDeposit) {
+      return res.status(429).json({
+        message: `Please wait ${COOLDOWN_MINUTES} minutes before making another deposit`,
+      });
     }
 
+    // 3. CREATE DEPOSIT
     const deposit = await Deposit.create({
       userId: req.user._id,
       amount,
-      paymentProof,
+      proofImage: path,
+      proofPublicId: filename,
       status: 'pending',
     });
 
-    return res.json({
-      message: 'Deposit request submitted',
+    res.json({
+      message: 'Deposit submitted successfully',
       deposit,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -94,32 +120,74 @@ const getUserDeposits = async (req, res) => {
 // USER requests withdrawal
 const requestWithdrawal = async (req, res) => {
   try {
-    const { amount, walletAddress } = req.body;
+    const { amount, network, walletAddress } = req.body;
 
     if (!amount || amount <= 0) {
-      return res.status(400).json({ message: 'Invalid withdrawal amount' });
+      return res.status(400).json({
+        message: 'Invalid withdrawal amount',
+      });
+    }
+
+    if (!network) {
+      return res.status(400).json({
+        message: 'Withdrawal network is required',
+      });
     }
 
     if (!walletAddress) {
-      return res.status(400).json({ message: 'Wallet address required' });
+      return res.status(400).json({
+        message: 'Wallet address is required',
+      });
     }
 
     const wallet = await Wallet.findOne({ userId: req.user._id });
 
     if (!wallet || wallet.balance < amount) {
-      return res.status(400).json({ message: 'Insufficient balance' });
+      return res.status(400).json({
+        message: 'Insufficient balance',
+      });
     }
 
+    // WITHDRAWAL COOLDOWN (5 mins)
+    const COOLDOWN_MINUTES = 1;
+
+    const recentWithdrawal = await Withdrawal.findOne({
+      userId: req.user._id,
+      createdAt: {
+        $gte: new Date(Date.now() - COOLDOWN_MINUTES * 60 * 1000),
+      },
+      status: 'pending',
+    });
+
+    if (recentWithdrawal) {
+      return res.status(429).json({
+        message: `Please wait ${COOLDOWN_MINUTES} minutes before making another withdrawal`,
+      });
+    }
+
+    // lock funds
     wallet.balance -= amount;
-    wallet.lockedBalance += Number(amount);
+    wallet.lockedBalance += amount;
     await wallet.save();
 
     const withdrawal = await Withdrawal.create({
       userId: req.user._id,
       amount,
+      network,
       walletAddress,
       status: 'pending',
     });
+
+    // save address if not already saved
+    try {
+      await SavedAddress.create({
+        userId: req.user._id,
+        network,
+        address: walletAddress,
+      });
+    } catch (err) {
+      console.error(err);
+    }
 
     return res.json({
       message: 'Withdrawal request submitted',
@@ -127,6 +195,12 @@ const requestWithdrawal = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+
+    // catches schema validation errors (invalid address/network)
+    if (error.message?.includes('Invalid wallet address')) {
+      return res.status(400).json({ message: error.message });
+    }
+
     return res.status(500).json({ message: 'Server error' });
   }
 };
@@ -145,9 +219,36 @@ const getUserWithdrawals = async (req, res) => {
   }
 };
 
+// GET saved withdrawal addresses
+const getSavedAddresses = async (req, res) => {
+  try {
+    const addresses = await SavedAddress.find({
+      userId: req.user._id,
+    }).sort({ createdAt: -1 });
+
+    return res.json(addresses);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
 /* ============================
          ADMIN FUNCTIONS
    ============================ */
+
+// get pending deposits
+const getPendingDeposits = async (req, res) => {
+  try {
+    const deposits = await Deposit.find({ status: 'pending' })
+      .populate('userId', 'email username')
+      .sort({ createdAt: -1 });
+
+    res.json(deposits);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
 // APPROVE deposit
 const approveDeposit = async (req, res) => {
@@ -208,11 +309,7 @@ const approveDeposit = async (req, res) => {
       const user = await User.findById(deposit.userId);
 
       const body = preset.body({ amount: deposit.amount });
-      const html = notificationEmailTemplate(
-        user.username,
-        preset.title,
-        body
-      );
+      const html = notificationEmailTemplate(user.username, preset.title, body);
 
       await sendEmail(user.email, preset.title, html);
       await Notification.create({
@@ -259,11 +356,7 @@ const rejectDeposit = async (req, res) => {
       const user = await User.findById(deposit.userId);
 
       const body = preset.body({});
-      const html = notificationEmailTemplate(
-        user.username,
-        preset.title,
-        body
-      );
+      const html = notificationEmailTemplate(user.username, preset.title, body);
 
       await sendEmail(user.email, preset.title, html);
       await Notification.create({
@@ -330,11 +423,7 @@ const approveWithdrawal = async (req, res) => {
       const user = await User.findById(withdrawal.userId);
 
       const body = preset.body({ amount: withdrawal.amount });
-      const html = notificationEmailTemplate(
-        user.username,
-        preset.title,
-        body
-      );
+      const html = notificationEmailTemplate(user.username, preset.title, body);
 
       await sendEmail(user.email, preset.title, html);
       await Notification.create({
@@ -400,11 +489,7 @@ const rejectWithdrawal = async (req, res) => {
       const user = await User.findById(withdrawal.userId);
 
       const body = preset.body({});
-      const html = notificationEmailTemplate(
-        user.username,
-        preset.title,
-        body
-      );
+      const html = notificationEmailTemplate(user.username, preset.title, body);
 
       await sendEmail(user.email, preset.title, html);
       await Notification.create({
@@ -431,6 +516,8 @@ module.exports = {
   getUserDeposits,
   requestWithdrawal,
   getUserWithdrawals,
+  getSavedAddresses,
+  getPendingDeposits,
   approveDeposit,
   rejectDeposit,
   approveWithdrawal,

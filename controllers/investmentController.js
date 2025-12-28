@@ -80,6 +80,7 @@ const investInPlan = async (req, res) => {
 
     // deduct wallet balance FIRST (atomic)
     wallet.balance -= amount;
+    wallet.lockedBalance += amount;
     await wallet.save({ session });
 
     // calculate dates
@@ -177,11 +178,7 @@ const investInPlan = async (req, res) => {
         amount: investment.amount,
       });
 
-      const html = notificationEmailTemplate(
-        user.username,
-        preset.title,
-        body
-      );
+      const html = notificationEmailTemplate(user.username, preset.title, body);
 
       await sendEmail(user.email, preset.title, html);
 
@@ -328,7 +325,7 @@ const deletePlan = async (req, res) => {
         SYSTEM LOGIC - ROI + Auto Close
 ========================================= */
 
-// generate profit (hardened)
+// generate profit (atomic + safe)
 const generateProfits = async () => {
   const now = new Date();
 
@@ -338,6 +335,7 @@ const generateProfits = async () => {
   }).populate('planId');
 
   for (const inv of investments) {
+    // skip expired
     if (inv.endDate <= now) continue;
 
     const roiAmount = Number(((inv.amount * inv.planId.roi) / 100).toFixed(2));
@@ -356,8 +354,7 @@ const generateProfits = async () => {
 
     const creditedProfit = Math.min(roiAmount, remainingAllowed);
 
-    inv.profitEarned += creditedProfit;
-
+    // calculate next profit time FIRST
     const nextTime = new Date(inv.nextProfitTime);
     if (inv.planId.roiType === 'daily')
       nextTime.setDate(nextTime.getDate() + 1);
@@ -366,8 +363,20 @@ const generateProfits = async () => {
     if (inv.planId.roiType === 'monthly')
       nextTime.setMonth(nextTime.getMonth() + 1);
 
-    inv.nextProfitTime = nextTime;
-    await inv.save();
+    // atomic claim (prevents double credit)
+    const claimed = await Investment.findOneAndUpdate(
+      {
+        _id: inv._id,
+        nextProfitTime: inv.nextProfitTime,
+      },
+      {
+        $set: { nextProfitTime: nextTime },
+        $inc: { profitEarned: creditedProfit },
+      },
+      { new: true }
+    );
+
+    if (!claimed) continue; // already processed elsewhere
 
     const wallet = await Wallet.findOne({ userId: inv.userId });
     if (!wallet) continue;
@@ -386,67 +395,37 @@ const generateProfits = async () => {
       amount: creditedProfit,
       description: 'ROI credited',
     });
-
-    // 🔔 Auto notification: ROI credited
-    try {
-      const preset = notificationPresets.ROI_CREDITED;
-      const user = await User.findById(inv.userId);
-
-      const body = preset.body({ amount: creditedProfit });
-      const html = notificationEmailTemplate(
-        user.username,
-        preset.title,
-        body
-      );
-
-      await sendEmail(user.email, preset.title, html);
-
-      await Notification.create({
-        userId: user._id,
-        title: preset.title,
-        message: body,
-      });
-    } catch (err) {
-      console.error('ROI credited notification failed:', err);
-    }
   }
 };
 
-// auto close completed investments
+// auto close completed investments + return principal
 const closeCompletedInvestments = async () => {
   const now = new Date();
 
   const investments = await Investment.find({
     status: 'active',
     endDate: { $lte: now },
-  }).populate('planId');
+  });
 
   for (const inv of investments) {
     inv.status = 'completed';
+    inv.nextProfitTime = null;
     await inv.save();
 
-    // 🔔 Auto notification: Investment completed
-    try {
-      const preset = notificationPresets.INVESTMENT_COMPLETED;
-      const user = await User.findById(inv.userId);
+    const wallet = await Wallet.findOne({ userId: inv.userId });
+    if (!wallet) continue;
 
-      const body = preset.body({ planName: inv.planId.name });
-      const html = notificationEmailTemplate(
-        user.username,
-        preset.title,
-        body
-      );
+    // 🔓 unlock principal
+    wallet.lockedBalance -= inv.amount;
+    wallet.balance += inv.amount;
+    await wallet.save();
 
-      await sendEmail(user.email, preset.title, html);
-
-      await Notification.create({
-        userId: user._id,
-        title: preset.title,
-        message: body,
-      });
-    } catch (err) {
-      console.error('Investment completed notification failed:', err);
-    }
+    await TransactionalLog.create({
+      userId: inv.userId,
+      type: 'adjustment',
+      amount: inv.amount,
+      description: 'Investment principal returned',
+    });
   }
 };
 

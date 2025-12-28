@@ -13,9 +13,15 @@ const depositSchema = new mongoose.Schema(
       required: true,
     },
 
-    paymentProof: {
-      type: String, // URL or path to the payment proof image
+    proofImage: {
+      type: String, // cloudinary URL
       required: true,
+    },
+
+    proofPublicId: {
+      type: String,
+      required: true,
+      unique: true,
     },
 
     status: {
