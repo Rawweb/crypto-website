@@ -55,8 +55,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// REQUIRED for browser preflight (Express 5)
-app.options('/*', cors(corsOptions));
 
 //test
 app.get('/', (req, res) => {
