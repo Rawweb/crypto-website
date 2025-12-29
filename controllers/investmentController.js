@@ -80,7 +80,6 @@ const investInPlan = async (req, res) => {
 
     // deduct wallet balance FIRST (atomic)
     wallet.balance -= amount;
-    wallet.lockedBalance += amount;
     await wallet.save({ session });
 
     // calculate dates
@@ -221,6 +220,28 @@ const getUserInvestments = async (req, res) => {
   }
 };
 
+// GET single investment (user only)
+const getSingleInvestment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const investment = await Investment.findOne({
+      _id: id,
+      userId: req.user._id, // 🔒 ensures user can only access their own investment
+    }).populate('planId');
+
+    if (!investment) {
+      return res.status(404).json({ message: 'Investment not found' });
+    }
+
+    res.json(investment);
+  } catch (error) {
+    console.error('Get single investment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
 /* ============================
         ADMIN FUNCTION
 ============================ */
@@ -347,7 +368,6 @@ const generateProfits = async () => {
 
     if (remainingAllowed <= 0) {
       inv.status = 'completed';
-      inv.nextProfitTime = null;
       await inv.save();
       continue;
     }
@@ -391,6 +411,7 @@ const generateProfits = async () => {
 
     await TransactionalLog.create({
       userId: inv.userId,
+      investmentId: inv._id,
       type: 'profit',
       amount: creditedProfit,
       description: 'ROI credited',
@@ -405,27 +426,75 @@ const closeCompletedInvestments = async () => {
   const investments = await Investment.find({
     status: 'active',
     endDate: { $lte: now },
-  });
+  }).populate('planId');
 
   for (const inv of investments) {
-    inv.status = 'completed';
-    inv.nextProfitTime = null;
-    await inv.save();
+    const session = await mongoose.startSession();
 
-    const wallet = await Wallet.findOne({ userId: inv.userId });
-    if (!wallet) continue;
+    try {
+      session.startTransaction();
 
-    // 🔓 unlock principal
-    wallet.lockedBalance -= inv.amount;
-    wallet.balance += inv.amount;
-    await wallet.save();
+      // mark investment as completed
+      inv.status = 'completed';
+      await inv.save({ session });
 
-    await TransactionalLog.create({
-      userId: inv.userId,
-      type: 'adjustment',
-      amount: inv.amount,
-      description: 'Investment principal returned',
-    });
+      // credit capital back to wallet
+      const wallet = await Wallet.findOne({ userId: inv.userId }).session(
+        session
+      );
+
+      if (wallet) {
+        wallet.balance += inv.amount;
+        await wallet.save({ session });
+      }
+
+      // log capital return
+      await TransactionalLog.create(
+        [
+          {
+            userId: inv.userId,
+            type: 'adjustment',
+            amount: inv.amount,
+            description: 'Investment capital returned',
+          },
+        ],
+        { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      // 🔔 notify user (safe)
+      try {
+        const preset = notificationPresets.INVESTMENT_COMPLETED;
+        const user = await User.findById(inv.userId);
+
+        const body = preset.body({
+          planName: inv.planId.name,
+          amount: inv.amount,
+        });
+
+        const html = notificationEmailTemplate(
+          user.username,
+          preset.title,
+          body
+        );
+
+        await sendEmail(user.email, preset.title, html);
+
+        await Notification.create({
+          userId: user._id,
+          title: preset.title,
+          message: body,
+        });
+      } catch (err) {
+        console.error('Investment completion notification failed:', err);
+      }
+    } catch (err) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error(`Failed closing investment ${inv._id}:`, err.message);
+    }
   }
 };
 
@@ -433,6 +502,7 @@ module.exports = {
   getAllPlans,
   investInPlan,
   getUserInvestments,
+  getSingleInvestment,
   createPlan,
   getAllInvestments,
   updatePlan,

@@ -233,6 +233,25 @@ const getSavedAddresses = async (req, res) => {
   }
 };
 
+// update wallet address
+const updateWalletAddress = async (req, res) => {
+  const { usdtAddress } = req.body;
+
+  if (!usdtAddress || usdtAddress.length < 20) {
+    return res.status(400).json({ message: 'Invalid wallet address' });
+  }
+
+  const wallet = await Wallet.findOne({ userId: req.user._id });
+  if (!wallet) {
+    return res.status(404).json({ message: 'Wallet not found' });
+  }
+
+  wallet.usdtAddress = usdtAddress;
+  await wallet.save();
+
+  res.json({ message: 'Wallet address updated' });
+};
+
 /* ============================
          ADMIN FUNCTIONS
    ============================ */
@@ -517,6 +536,7 @@ module.exports = {
   requestWithdrawal,
   getUserWithdrawals,
   getSavedAddresses,
+  updateWalletAddress,
   getPendingDeposits,
   approveDeposit,
   rejectDeposit,

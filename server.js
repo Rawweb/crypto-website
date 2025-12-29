@@ -30,6 +30,8 @@ const faqRoutes = require('./routes/faqRoutes');
 const pageRoutes = require('./routes/pageRoutes');
 const bannerRoutes = require('./routes/bannerRoutes');
 const contactMessageRoutes = require('./routes/contactMessageRoutes');
+const transactionLogRoutes = require('./routes/transactionLogRoutes');
+
 
 const app = express();
 
@@ -76,6 +78,7 @@ app.use('/api/admin/transactions', adminTransactionLogRoutes);
 app.use('/api/admin/stats', adminStatsRoutes);
 app.use('/api/admin/notifications', adminNotificationRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/wallet/transactions', transactionLogRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/pages', pageRoutes);
 app.use('/api/banners', bannerRoutes);
