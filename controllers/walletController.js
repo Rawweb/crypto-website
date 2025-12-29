@@ -180,11 +180,11 @@ const requestWithdrawal = async (req, res) => {
 
     // save address if not already saved
     try {
-      await SavedAddress.create({
-        userId: req.user._id,
-        network,
-        address: walletAddress,
-      });
+      await SavedAddress.findOneAndUpdate(
+        { userId: req.user._id, address: walletAddress },
+        { network },
+        { upsert: true, new: true }
+      );
     } catch (err) {
       console.error(err);
     }
@@ -220,16 +220,17 @@ const getUserWithdrawals = async (req, res) => {
 };
 
 // GET saved withdrawal addresses
-const getSavedAddresses = async (req, res) => {
+const getSavedWallets = async (req, res) => {
   try {
-    const addresses = await SavedAddress.find({
-      userId: req.user._id,
-    }).sort({ createdAt: -1 });
+    const wallets = await SavedAddress.find({ userId: req.user._id }).sort({
+      isDefault: -1,
+      createdAt: -1,
+    });
 
-    return res.json(addresses);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Server error' });
+    res.json(wallets);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to load wallets' });
   }
 };
 
@@ -250,6 +251,50 @@ const updateWalletAddress = async (req, res) => {
   await wallet.save();
 
   res.json({ message: 'Wallet address updated' });
+};
+
+// default wallet
+const setDefaultWallet = async (req, res) => {
+  const { id } = req.body;
+
+  await SavedAddress.updateMany({ userId: req.user._id }, { isDefault: false });
+
+  await SavedAddress.findOneAndUpdate(
+    { _id: id, userId: req.user._id },
+    { isDefault: true }
+  );
+
+  res.json({ message: 'Default wallet updated' });
+};
+
+// DELETE saved wallet
+const deleteSavedWallet = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const wallet = await SavedAddress.findOne({
+      _id: id,
+      userId: req.user._id,
+    });
+
+    if (!wallet) {
+      return res.status(404).json({ message: 'Wallet not found' });
+    }
+
+    // prevent deleting default wallet
+    if (wallet.isDefault) {
+      return res.status(400).json({
+        message: 'You cannot delete your default wallet',
+      });
+    }
+
+    await wallet.deleteOne();
+
+    res.json({ message: 'Wallet deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to delete wallet' });
+  }
 };
 
 /* ============================
@@ -535,7 +580,9 @@ module.exports = {
   getUserDeposits,
   requestWithdrawal,
   getUserWithdrawals,
-  getSavedAddresses,
+  getSavedWallets,
+  setDefaultWallet,
+  deleteSavedWallet,
   updateWalletAddress,
   getPendingDeposits,
   approveDeposit,

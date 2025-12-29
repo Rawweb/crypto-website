@@ -6,7 +6,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
     },
 
     email: {
@@ -25,6 +24,33 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 8,
+    },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other'],
+      default: null,
+    },
+
+    phone: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    address: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    avatar: {
+      type: String, // image URL (later)
+      default: null,
+    },
+
+    country: {
+      type: String,
+      default: null,
     },
 
     referralCode: {

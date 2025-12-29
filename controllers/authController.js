@@ -4,8 +4,7 @@ const jwt = require('jsonwebtoken');
 const referralCode = require('../utils/referralCode');
 const Referral = require('../models/referralModel');
 const Wallet = require('../models/walletModel');
-const { sendVerificationEmailLogic} = require('./verificationController');
-
+const { sendVerificationEmailLogic } = require('./verificationController');
 
 // generate JWT
 const generateToken = id => {
@@ -34,7 +33,9 @@ const registerUser = async (req, res) => {
     // check if user exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
-      return res.status(400).json({ message: 'User with this email or username already exists' });
+      return res
+        .status(400)
+        .json({ message: 'User with this email or username already exists' });
     }
 
     // validate referral code
@@ -140,7 +141,9 @@ const loginUser = async (req, res) => {
 
     // check if user is suspended
     if (user.status === 'suspended') {
-      return res.status(403).json({ message: 'Your account is suspended. Contact support' });
+      return res
+        .status(403)
+        .json({ message: 'Your account is suspended. Contact support' });
     }
 
     // generate token
@@ -166,7 +169,39 @@ const loginUser = async (req, res) => {
   }
 };
 
+// UPDATE PROFILE
+const updateProfile = async (req, res) => {
+  try {
+    const allowedFields = ['username', 'gender', 'phone', 'address', 'avatar', 'country'];
+    const updates = {};
+
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    });
+
+    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+      new: true,
+      runValidators: false, // 👈 THIS IS KEY
+    }).select('-password');
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Profile update failed',
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  updateProfile,
 };

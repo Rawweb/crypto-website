@@ -7,36 +7,25 @@ const savedAddressSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
-
     network: {
       type: String,
       required: true,
       enum: ['USDT_TRON', 'USDT_ETH', 'ETH', 'BTC'],
     },
-
     address: {
       type: String,
       required: true,
       trim: true,
     },
-
-    label: {
-      type: String,
-      trim: true,
+    isDefault: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }
 );
 
-// prevent duplicate address per user per network
-savedAddressSchema.index(
-  { userId: 1, network: 1, address: 1 },
-  { unique: true }
-);
+// prevent duplicates
+savedAddressSchema.index({ userId: 1, address: 1 }, { unique: true });
 
-const SavedAddress = mongoose.model(
-  'SavedAddress',
-  savedAddressSchema
-);
-
-module.exports = SavedAddress;
+module.exports = mongoose.model('SavedAddress', savedAddressSchema);
