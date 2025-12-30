@@ -75,6 +75,17 @@ const userSchema = new mongoose.Schema(
       default: 'active',
     },
 
+    resendCooldowns: {
+      verify_email: {
+        type: Date,
+        default: null,
+      },
+      reset_password: {
+        type: Date,
+        default: null,
+      },
+    },
+
     isVerified: {
       type: Boolean,
       default: false,

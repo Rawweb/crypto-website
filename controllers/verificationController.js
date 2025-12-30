@@ -3,6 +3,7 @@ const User = require('../models/userModel');
 const generateOTP = require('../utils/otp');
 const sendEmail = require('../utils/sendEmail');
 const { emailSuccesfulTemplate } = require('../utils/emailTemplate');
+const { canResend, setCooldown } = require('../utils/cooldown');
 
 const sendVerificationEmailLogic = async user => {
   if (!user || user.isVerified) return;
@@ -176,8 +177,32 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+// resend email verification
+const resendVerificationEmail = async (req, res) => {
+  const user = req.user;
+
+  if (!canResend(user, 'verify_email')) {
+    return res.status(429).json({
+      message: 'Please wait before requesting another code.',
+      nextAllowedAt: user.resendCooldowns.verify_email,
+    });
+  }
+
+  await sendVerificationEmailLogic(user);
+
+  setCooldown(user, 'verify_email');
+  await user.save();
+
+  res.json({
+    message: 'Verification email sent',
+    nextAllowedAt: user.resendCooldowns.verify_email,
+  });
+};
+
+
 module.exports = {
   sendVerificationEmailLogic,
   sendVerificationEmail,
   verifyEmail,
+  resendVerificationEmail,
 };

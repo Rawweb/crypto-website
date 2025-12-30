@@ -7,11 +7,15 @@ const Wallet = require('../models/walletModel');
 const { sendVerificationEmailLogic } = require('./verificationController');
 
 // generate JWT
-const generateToken = id => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
+const generateAccessToken = user =>
+  jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: '15m',
   });
-};
+
+const generateRefreshToken = user =>
+  jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, {
+    expiresIn: '7d',
+  });
 
 // register user
 const registerUser = async (req, res) => {
@@ -91,7 +95,15 @@ const registerUser = async (req, res) => {
     await sendVerificationEmailLogic(user);
 
     // generate token
-    const token = generateToken(user._id);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     //send response
     res.status(201).json({
@@ -105,7 +117,7 @@ const registerUser = async (req, res) => {
         role: user.role,
         isVerified: user.isVerified,
       },
-      token,
+      token: accessToken,
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -139,15 +151,23 @@ const loginUser = async (req, res) => {
       return res.status(403).json({ message: 'Your account is banned' });
     }
 
-    // check if user is suspended
-    if (user.status === 'suspended') {
-      return res
-        .status(403)
-        .json({ message: 'Your account is suspended. Contact support' });
-    }
+    // // check if user is suspended
+    // if (user.status === 'suspended') {
+    //   return res
+    //     .status(403)
+    //     .json({ message: 'Your account is suspended. Contact support' });
+    // }
 
     // generate token
-    const token = generateToken(user._id);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     //send response
     res.status(200).json({
@@ -161,7 +181,7 @@ const loginUser = async (req, res) => {
         role: user.role,
         isVerified: user.isVerified,
       },
-      token,
+      token: accessToken,
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -169,10 +189,44 @@ const loginUser = async (req, res) => {
   }
 };
 
+// refresh token
+const refreshToken = async (req, res) => {
+  const token = req.cookies?.refreshToken;
+
+  if (!token) {
+    return res.status(401).json({ message: 'No refresh token' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    const newAccessToken = generateAccessToken(user);
+
+    res.json({
+      token: newAccessToken,
+      user,
+    });
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid refresh token' });
+  }
+};
+
 // UPDATE PROFILE
 const updateProfile = async (req, res) => {
   try {
-    const allowedFields = ['username', 'gender', 'phone', 'address', 'avatar', 'country'];
+    const allowedFields = [
+      'username',
+      'gender',
+      'phone',
+      'address',
+      'avatar',
+      'country',
+    ];
     const updates = {};
 
     allowedFields.forEach(field => {
@@ -200,8 +254,53 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// @desc   Get current logged in user
+// @route  GET /api/auth/me
+// @access Private
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch user' });
+  }
+};
+
+// @desc   Logout user (clear refresh token cookie)
+// @route  POST /api/auth/logout
+// @access Private (or Public – cookie based)
+const logoutUser = async (req, res) => {
+  try {
+    // res.cookie('refreshToken', refreshToken, {
+    //   httpOnly: true,
+    //   secure: false, // localhost
+    //   sameSite: 'lax', // ✅ allow same-site navigation
+    //   maxAge: 7 * 24 * 60 * 60 * 1000,
+    // });
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+      secure: true,
+    });
+
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Logout failed' });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  refreshToken,
   updateProfile,
+  getMe,
+  logoutUser,
 };

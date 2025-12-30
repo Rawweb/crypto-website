@@ -1,4 +1,5 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
@@ -37,6 +38,8 @@ const app = express();
 
 //middlewares
 app.use(express.json());
+app.use(cookieParser());
+
 
 const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173'].filter(
   Boolean
