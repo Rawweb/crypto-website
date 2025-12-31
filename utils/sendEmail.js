@@ -16,6 +16,9 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false,
   },
+  connectionTimeout: 10_000,
+  greetingTimeout: 10_000,
+  socketTimeout: 10_000,
 });
 
 const sendEmail = async (to, subject, html) => {
@@ -26,13 +29,13 @@ const sendEmail = async (to, subject, html) => {
       subject,
       html,
 
-      attachments: [
-        {
-          filename: 'logo.png',
-          path: path.join(__dirname, '../assets/logo.png'),
-          cid: 'logo',
-        },
-      ],
+      // attachments: [
+      //   {
+      //     filename: 'logo.png',
+      //     path: path.join(__dirname, '../assets/logo.png'),
+      //     cid: 'logo',
+      //   },
+      // ],
     });
 
     console.log('Email sent:', info.messageId);

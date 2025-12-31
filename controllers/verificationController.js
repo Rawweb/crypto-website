@@ -188,7 +188,9 @@ const resendVerificationEmail = async (req, res) => {
     });
   }
 
-  await sendVerificationEmailLogic(user);
+  sendVerificationEmailLogic(user).catch(err =>
+    console.error('Resend verification email failed:', err)
+  );
 
   setCooldown(user, 'verify_email');
   await user.save();
@@ -198,7 +200,6 @@ const resendVerificationEmail = async (req, res) => {
     nextAllowedAt: user.resendCooldowns.verify_email,
   });
 };
-
 
 module.exports = {
   sendVerificationEmailLogic,
