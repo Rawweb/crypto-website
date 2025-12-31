@@ -92,7 +92,9 @@ const registerUser = async (req, res) => {
     }
 
     // send verification email
-    await sendVerificationEmailLogic(user);
+    sendVerificationEmailLogic(user).catch(err =>
+      console.error('Verification email failed:', err)
+    );
 
     // generate token
     const accessToken = generateAccessToken(user);
@@ -153,7 +155,9 @@ const loginUser = async (req, res) => {
     }
 
     if (!user.isVerified) {
-      await sendVerificationEmailLogic(user);
+      sendVerificationEmailLogic(user).catch(err =>
+        console.error('Verification email failed:', err)
+      );
     }
 
     // generate token

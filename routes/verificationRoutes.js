@@ -8,6 +8,6 @@ const { protect } = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 router.post('/send-email', protect, resendVerificationEmail);
-router.post('/verify-email', verifyEmail);
+router.post('/verify-email', protect, verifyEmail);
 
 module.exports = router;

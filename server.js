@@ -33,14 +33,11 @@ const bannerRoutes = require('./routes/bannerRoutes');
 const contactMessageRoutes = require('./routes/contactMessageRoutes');
 const transactionLogRoutes = require('./routes/transactionLogRoutes');
 
-
 const app = express();
 
 //middlewares
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
 
 const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173'].filter(
   Boolean
@@ -48,11 +45,14 @@ const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173'].filter(
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, false);
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+
+    console.error('Blocked by CORS:', origin);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -60,8 +60,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-
 
 //test
 app.get('/', (req, res) => {
