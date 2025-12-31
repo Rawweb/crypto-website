@@ -11,13 +11,17 @@ const {
   deletePage,
 } = require('../controllers/pageController');
 
-
 // admin
 router.get('/admin/all', protect, admin, getAllPagesAdmin);
 router.post('/admin/draft', protect, admin, saveDraftPage);
-router.put('/admin/publish/:id', protect, admin, publishPage);
-router.put('/admin/restore/:versionIndex/:id', protect, admin, restorePageVersion);
-router.delete('/admin/delete/:id', protect, admin, deletePage);
+router.put('/admin/:id/publish', protect, admin, publishPage);
+router.put(
+  '/admin/restore/:id/:versionIndex',
+  protect,
+  admin,
+  restorePageVersion
+);
+router.delete('/admin/:id/delete', protect, admin, deletePage);
 
 // public
 router.get('/:slug', getPageBySlug);

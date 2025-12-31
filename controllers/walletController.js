@@ -369,17 +369,19 @@ const approveDeposit = async (req, res) => {
 
     // 🔔 AUTO NOTIFICATION (SAFE)
     try {
-      const preset = notificationPresets.DEPOSIT_APPROVED;
-      const user = await User.findById(deposit.userId);
+      const message = preset.message({ amount: deposit.amount });
+      const emailHtml = preset.emailBody({ amount: deposit.amount });
 
-      const body = preset.body({ amount: deposit.amount });
-      const html = notificationEmailTemplate(user.username, preset.title, body);
+      await sendEmail(
+        user.email,
+        preset.title,
+        notificationEmailTemplate(user.username, preset.title, emailHtml)
+      );
 
-      await sendEmail(user.email, preset.title, html);
       await Notification.create({
         userId: user._id,
         title: preset.title,
-        message: body,
+        message,
       });
     } catch (err) {
       console.error('Auto notification failed:', err);
@@ -416,17 +418,19 @@ const rejectDeposit = async (req, res) => {
 
     // 🔔 AUTO NOTIFICATION (SAFE)
     try {
-      const preset = notificationPresets.DEPOSIT_REJECTED;
-      const user = await User.findById(deposit.userId);
+      const message = preset.message({ amount: deposit.amount });
+      const emailHtml = preset.emailBody({ amount: deposit.amount });
 
-      const body = preset.body({});
-      const html = notificationEmailTemplate(user.username, preset.title, body);
+      await sendEmail(
+        user.email,
+        preset.title,
+        notificationEmailTemplate(user.username, preset.title, emailHtml)
+      );
 
-      await sendEmail(user.email, preset.title, html);
       await Notification.create({
         userId: user._id,
         title: preset.title,
-        message: body,
+        message,
       });
     } catch (err) {
       console.error('Auto notification failed:', err);
@@ -483,17 +487,19 @@ const approveWithdrawal = async (req, res) => {
 
     // 🔔 AUTO NOTIFICATION (SAFE)
     try {
-      const preset = notificationPresets.WITHDRAWAL_APPROVED;
-      const user = await User.findById(withdrawal.userId);
+      const message = preset.message({ amount: deposit.amount });
+      const emailHtml = preset.emailBody({ amount: deposit.amount });
 
-      const body = preset.body({ amount: withdrawal.amount });
-      const html = notificationEmailTemplate(user.username, preset.title, body);
+      await sendEmail(
+        user.email,
+        preset.title,
+        notificationEmailTemplate(user.username, preset.title, emailHtml)
+      );
 
-      await sendEmail(user.email, preset.title, html);
       await Notification.create({
         userId: user._id,
         title: preset.title,
-        message: body,
+        message,
       });
     } catch (err) {
       console.error('Auto notification failed:', err);
@@ -549,17 +555,19 @@ const rejectWithdrawal = async (req, res) => {
 
     // 🔔 AUTO NOTIFICATION (SAFE)
     try {
-      const preset = notificationPresets.WITHDRAWAL_REJECTED;
-      const user = await User.findById(withdrawal.userId);
+      const message = preset.message({ amount: deposit.amount });
+      const emailHtml = preset.emailBody({ amount: deposit.amount });
 
-      const body = preset.body({});
-      const html = notificationEmailTemplate(user.username, preset.title, body);
+      await sendEmail(
+        user.email,
+        preset.title,
+        notificationEmailTemplate(user.username, preset.title, emailHtml)
+      );
 
-      await sendEmail(user.email, preset.title, html);
       await Notification.create({
         userId: user._id,
         title: preset.title,
-        message: body,
+        message,
       });
     } catch (err) {
       console.error('Auto notification failed:', err);

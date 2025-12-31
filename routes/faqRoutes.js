@@ -12,17 +12,20 @@ const {
   getFaqs,
 } = require('../controllers/faqController');
 
-
 // admin
 router.get('/admin/all', protect, admin, getAllFaqsAdmin);
 router.post('/admin/draft', protect, admin, createFaqDraft);
-router.put('/admin/draft/:id', protect, admin, updateFaqDraft);
-router.put('/admin/publish/:id', protect, admin, publishFaq);
-router.put('/admin/restore/:versionIndex/:id', protect, admin, restoreFaqVersion);
-router.delete('/admin/delete/:id', protect, admin, deleteFaq);
+router.put('/admin/:id/draft', protect, admin, updateFaqDraft);
+router.put('/admin/:id/publish', protect, admin, publishFaq);
+router.put(
+  '/admin/restore/:id/:versionIndex',
+  protect,
+  admin,
+  restoreFaqVersion
+);
+router.delete('/admin/:id/delete', protect, admin, deleteFaq);
 
 // public
 router.get('/', getFaqs);
-
 
 module.exports = router;

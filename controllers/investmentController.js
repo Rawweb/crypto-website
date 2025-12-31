@@ -172,19 +172,26 @@ const investInPlan = async (req, res) => {
       const preset = notificationPresets.INVESTMENT_CREATED;
       const user = await User.findById(req.user._id);
 
-      const body = preset.body({
+      const message = preset.message({
         planName: plan.name,
         amount: investment.amount,
       });
 
-      const html = notificationEmailTemplate(user.username, preset.title, body);
+      const emailHtml = preset.emailBody({
+        planName: plan.name,
+        amount: investment.amount,
+      });
 
-      await sendEmail(user.email, preset.title, html);
+      await sendEmail(
+        user.email,
+        preset.title,
+        notificationEmailTemplate(user.username, preset.title, emailHtml)
+      );
 
       await Notification.create({
         userId: user._id,
         title: preset.title,
-        message: body,
+        message,
       });
     } catch (err) {
       console.error('Investment created notification failed:', err);
@@ -240,7 +247,6 @@ const getSingleInvestment = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 
 /* ============================
         ADMIN FUNCTION
@@ -464,28 +470,30 @@ const closeCompletedInvestments = async () => {
       await session.commitTransaction();
       session.endSession();
 
-      // 🔔 notify user (safe)
+      // send auto notification
       try {
         const preset = notificationPresets.INVESTMENT_COMPLETED;
         const user = await User.findById(inv.userId);
 
-        const body = preset.body({
+        const message = preset.message({
           planName: inv.planId.name,
-          amount: inv.amount,
         });
 
-        const html = notificationEmailTemplate(
-          user.username,
-          preset.title,
-          body
-        );
+        const emailHtml = preset.emailBody({
+          planName: plan.name,
+          planName: inv.planId.name,
+        });
 
-        await sendEmail(user.email, preset.title, html);
+        await sendEmail(
+          user.email,
+          preset.title,
+          notificationEmailTemplate(user.username, preset.title, emailHtml)
+        );
 
         await Notification.create({
           userId: user._id,
           title: preset.title,
-          message: body,
+          message,
         });
       } catch (err) {
         console.error('Investment completion notification failed:', err);

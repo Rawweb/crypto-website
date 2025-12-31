@@ -10,6 +10,6 @@ const router = express.Router();
 
 router.get('/', protect, getNotifications);
 router.get('/unread-count', protect, getUnreadNotificationCount);
-router.put('/read/:id', protect, markAsRead);
+router.patch('/:id/read', protect, markAsRead);
 
 module.exports = router;
