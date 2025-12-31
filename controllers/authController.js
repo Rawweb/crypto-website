@@ -101,7 +101,8 @@ const registerUser = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -162,7 +163,8 @@ const loginUser = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -273,23 +275,16 @@ const getMe = async (req, res) => {
 // @access Private (or Public – cookie based)
 const logoutUser = async (req, res) => {
   try {
-    // res.cookie('refreshToken', refreshToken, {
-    //   httpOnly: true,
-    //   secure: false, // localhost
-    //   sameSite: 'lax', // ✅ allow same-site navigation
-    //   maxAge: 7 * 24 * 60 * 60 * 1000,
-    // });
-
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-      secure: true,
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/', // 🔥 REQUIRED
     });
 
-    res.status(200).json({ message: 'Logged out successfully' });
+    return res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Logout failed' });
+    return res.status(500).json({ message: 'Logout failed' });
   }
 };
 
