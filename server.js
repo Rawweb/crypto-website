@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
+
 // load env vars
 dotenv.config();
 
@@ -32,6 +33,8 @@ const pageRoutes = require('./routes/pageRoutes');
 const bannerRoutes = require('./routes/bannerRoutes');
 const contactMessageRoutes = require('./routes/contactMessageRoutes');
 const transactionLogRoutes = require('./routes/transactionLogRoutes');
+
+const testMailRoutes = require('./routes/testMailRoutes');
 
 const app = express();
 
@@ -65,6 +68,8 @@ app.use(cors(corsOptions));
 app.get('/', (req, res) => {
   res.send('Crypto API Is Running');
 });
+
+app.use('/api/test', testMailRoutes);
 
 // routes
 app.use('/api/auth', authRoutes);
