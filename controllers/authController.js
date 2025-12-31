@@ -151,12 +151,9 @@ const loginUser = async (req, res) => {
       return res.status(403).json({ message: 'Your account is banned' });
     }
 
-    // // check if user is suspended
-    // if (user.status === 'suspended') {
-    //   return res
-    //     .status(403)
-    //     .json({ message: 'Your account is suspended. Contact support' });
-    // }
+    if (!user.isVerified) {
+      await sendVerificationEmailLogic(user);
+    }
 
     // generate token
     const accessToken = generateAccessToken(user);
