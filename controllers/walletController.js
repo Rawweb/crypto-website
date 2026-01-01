@@ -369,8 +369,18 @@ const approveDeposit = async (req, res) => {
 
     // 🔔 AUTO NOTIFICATION (SAFE)
     try {
-      const message = preset.message({ amount: deposit.amount });
-      const emailHtml = preset.emailBody({ amount: deposit.amount });
+      const preset = notificationPresets.DEPOSIT_APPROVED;
+      const user = await User.findById(deposit.userId);
+
+      const message = preset.message({
+        planName: deposit.name,
+        amount: deposit.amount,
+      });
+
+      const emailHtml = preset.emailBody({
+        planName: deposit.name,
+        amount: deposit.amount,
+      });
 
       await sendEmail(
         user.email,
@@ -418,8 +428,18 @@ const rejectDeposit = async (req, res) => {
 
     // 🔔 AUTO NOTIFICATION (SAFE)
     try {
-      const message = preset.message({ amount: deposit.amount });
-      const emailHtml = preset.emailBody({ amount: deposit.amount });
+      const preset = notificationPresets.DEPOSIT_REJECTED;
+      const user = await User.findById(deposit.userId);
+
+      const message = preset.message({
+        planName: deposit.name,
+        amount: deposit.amount,
+      });
+
+      const emailHtml = preset.emailBody({
+        planName: deposit.name,
+        amount: deposit.amount,
+      });
 
       await sendEmail(
         user.email,
@@ -487,8 +507,18 @@ const approveWithdrawal = async (req, res) => {
 
     // 🔔 AUTO NOTIFICATION (SAFE)
     try {
-      const message = preset.message({ amount: deposit.amount });
-      const emailHtml = preset.emailBody({ amount: deposit.amount });
+      const preset = notificationPresets.WITHDRAWAL_APPROVED;
+      const user = await User.findById(withdrawal.userId);
+
+      const message = preset.message({
+        planName: withdrawal.name,
+        amount: withdrawal.amount,
+      });
+
+      const emailHtml = preset.emailBody({
+        planName: withdrawal.name,
+        amount: withdrawal.amount,
+      });
 
       await sendEmail(
         user.email,
@@ -553,10 +583,20 @@ const rejectWithdrawal = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    // 🔔 AUTO NOTIFICATION (SAFE)
+    // AUTO NOTIFICATION
     try {
-      const message = preset.message({ amount: deposit.amount });
-      const emailHtml = preset.emailBody({ amount: deposit.amount });
+      const preset = notificationPresets.WITHDRAWAL_REJECTED;
+      const user = await User.findById(withdrawal.userId);
+
+      const message = preset.message({
+        planName: withdrawal.name,
+        amount: withdrawal.amount,
+      });
+
+      const emailHtml = preset.emailBody({
+        planName: withdrawal.name,
+        amount: withdrawal.amount,
+      });
 
       await sendEmail(
         user.email,

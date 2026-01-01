@@ -480,7 +480,6 @@ const closeCompletedInvestments = async () => {
         });
 
         const emailHtml = preset.emailBody({
-          planName: plan.name,
           planName: inv.planId.name,
         });
 
