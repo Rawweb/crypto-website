@@ -463,6 +463,19 @@ const rejectDeposit = async (req, res) => {
   }
 };
 
+// GET pending withdrawals
+const getPendingWithdrawals = async (req, res) => {
+  try {
+    const withdrawals = await Withdrawal.find({ status: 'pending' })
+      .populate('userId', 'email username')
+      .sort({ createdAt: -1 });
+
+    res.json(withdrawals);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // APPROVE withdrawal
 const approveWithdrawal = async (req, res) => {
   const session = await mongoose.startSession();
@@ -635,6 +648,7 @@ module.exports = {
   getPendingDeposits,
   approveDeposit,
   rejectDeposit,
+  getPendingWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,
 };

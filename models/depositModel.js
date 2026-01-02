@@ -24,6 +24,11 @@ const depositSchema = new mongoose.Schema(
       unique: true,
     },
 
+    network: {
+      type: String,
+      enum: ['BTC', 'ETH', 'USDT'],
+    },
+    
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
