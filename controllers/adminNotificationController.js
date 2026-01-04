@@ -1,136 +1,84 @@
-const User = require('../models/userModel');
-const sendEmail = require('../utils/sendEmail');
-const { notificationEmailTemplate } = require('../utils/emailTemplate');
-const Notification = require('../models/notificationModel');
-const notificationPresets = require('../utils/notificationPreset');
+const AdminNotification = require('../models/adminNotificationModel');
 
-// send email to a single user
-const notifyUser = async (req, res) => {
+/* =========================
+   ADMIN NOTIFICATIONS
+========================= */
+
+// GET all admin notifications
+const getAdminNotifications = async (req, res) => {
   try {
-    const { userId, presetKey, data = {} } = req.body;
-
-    if (!userId || !presetKey) {
-      return res.status(400).json({
-        message: 'userId and presetKey are required',
-      });
-    }
-
-    const preset = notificationPresets[presetKey];
-    if (!preset) {
-      return res.status(400).json({ message: 'Invalid preset key' });
-    }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const subject = preset.title;
-    const body = preset.body(data);
-    const html = notificationEmailTemplate(user.username, subject, body);
-
-    await sendEmail(user.email, subject, html);
-
-    await Notification.create({
-      userId,
-      presetKey,
-      data,
+    const notifications = await AdminNotification.find().sort({
+      createdAt: -1,
     });
 
-    res.json({ message: 'Notification sent successfully' });
-  } catch (error) {
-    console.error('notifyUser error:', error);
+    res.json(notifications);
+  } catch (err) {
+    console.error('Get admin notifications error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// send email to multiple user
-const notifyMultipleUsers = async (req, res) => {
+// GET unread count
+const getUnreadAdminNotificationCount = async (req, res) => {
   try {
-    const { userIds, presetKey, data = {} } = req.body;
+    const count = await AdminNotification.countDocuments({
+      isRead: false,
+    });
 
-    if (!Array.isArray(userIds) || !presetKey) {
-      return res.status(400).json({
-        message: 'userIds array and presetKey are required',
-      });
-    }
-
-    const preset = notificationPresets[presetKey];
-    if (!preset) {
-      return res.status(400).json({ message: 'Invalid preset key' });
-    }
-
-    const users = await User.find({ _id: { $in: userIds } });
-
-    for (const user of users) {
-      const subject = preset.title;
-      const body = preset.body(data);
-      const html = notificationEmailTemplate(user.username, subject, body);
-      await sendEmail(user.email, subject, html);
-
-      await Notification.create({
-        userId: user._id,
-        presetKey,
-        data,
-      });
-    }
-
-    res.json({ message: 'Notifications sent successfully' });
-  } catch (error) {
-    console.error('notifyMultipleUsers error:', error);
+    res.json({ unread: count });
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// broadcast email to all users
-const notifyAllUsers = async (req, res) => {
+// MARK one as read
+const markAdminAsRead = async (req, res) => {
   try {
-    const { presetKey, data = {} } = req.body;
+    await AdminNotification.findByIdAndUpdate(req.params.id, {
+      isRead: true,
+    });
 
-    const preset = notificationPresets[presetKey];
-    if (!preset) {
-      return res.status(400).json({ message: 'Invalid preset key' });
-    }
+    res.json({ message: 'Notification marked as read' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
-    const users = await User.find({ status: 'active' }).select(
-      'email username'
-    );
+// MARK all as read
+const markAllAdminAsRead = async (req, res) => {
+  try {
+    await AdminNotification.updateMany({}, { isRead: true });
+    res.json({ message: 'All notifications marked as read' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
-    const BATCH_SIZE = 10;
-    const DELAY_MS = 2000;
+// DELETE one
+const deleteAdminNotification = async (req, res) => {
+  try {
+    await AdminNotification.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 
-    for (let i = 0; i < users.length; i += BATCH_SIZE) {
-      const batch = users.slice(i, i + BATCH_SIZE);
-
-      await Promise.all(
-        batch.map(async user => {
-          const subject = preset.title;
-          const body = preset.body(data);
-          const html = notificationEmailTemplate(user.username, subject, body);
-
-          // Send email
-          await sendEmail(user.email, subject, html);
-
-          await Notification.create({
-            userId: user._id,
-            title: subject,
-            message: body,
-          });
-        })
-      );
-
-      await new Promise(resolve => setTimeout(resolve, DELAY_MS));
-    }
-
-    res.json({ message: 'Broadcast notification sent successfully' });
-  } catch (error) {
-    console.error('notifyAllUsers error:', error);
+// CLEAR all
+const clearAdminNotifications = async (req, res) => {
+  try {
+    await AdminNotification.deleteMany({});
+    res.json({ success: true });
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 };
 
 module.exports = {
-  notifyUser,
-  notifyMultipleUsers,
-  notifyAllUsers,
+  getAdminNotifications,
+  getUnreadAdminNotificationCount,
+  markAdminAsRead,
+  markAllAdminAsRead,
+  deleteAdminNotification,
+  clearAdminNotifications,
 };

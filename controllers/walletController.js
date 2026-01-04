@@ -7,6 +7,7 @@ const SavedAddress = require('../models/savedAddressModel');
 const User = require('../models/userModel');
 
 const Notification = require('../models/notificationModel');
+const AdminNotification = require('../models/adminNotificationModel');
 const notificationPresets = require('../utils/notificationPreset');
 const { notificationEmailTemplate } = require('../utils/emailTemplate');
 const sendEmail = require('../utils/sendEmail');
@@ -93,6 +94,15 @@ const createDeposit = async (req, res) => {
       status: 'pending',
     });
 
+    // ADMIN NOTIFICATION
+    await AdminNotification.create({
+      type: 'deposit',
+      title: 'New Deposit Submitted',
+      message: `${req.user.email} submitted a deposit of ${amount}`,
+      entityType: 'deposit',
+      entityId: deposit._id,
+    });
+
     res.json({
       message: 'Deposit submitted successfully',
       deposit,
@@ -176,6 +186,15 @@ const requestWithdrawal = async (req, res) => {
       network,
       walletAddress,
       status: 'pending',
+    });
+
+    // ADD HERE
+    await AdminNotification.create({
+      type: 'withdrawal',
+      title: 'New Withdrawal Request',
+      message: `${req.user.email} requested ${amount}`,
+      entityType: 'withdrawal',
+      entityId: withdrawal._id,
     });
 
     // save address if not already saved
@@ -367,7 +386,7 @@ const approveDeposit = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    // 🔔 AUTO NOTIFICATION (SAFE)
+    // AUTO NOTIFICATION (SAFE)
     try {
       const preset = notificationPresets.DEPOSIT_APPROVED;
       const user = await User.findById(deposit.userId);
@@ -635,6 +654,32 @@ const rejectWithdrawal = async (req, res) => {
   }
 };
 
+// GET wallet by user
+const getUserWallet = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const wallet = await Wallet.findOne({ userId });
+
+    if (!wallet) {
+      return res.status(404).json({
+        message: 'Wallet not found',
+      });
+    }
+
+    res.json({
+      balance: wallet.balance,
+      lockedBalance: wallet.lockedBalance,
+      profitBalance: wallet.profitBalance,
+      referralBalance: wallet.referralBalance,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
 module.exports = {
   getWallet,
   createDeposit,
@@ -651,4 +696,5 @@ module.exports = {
   getPendingWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,
+  getUserWallet,
 };

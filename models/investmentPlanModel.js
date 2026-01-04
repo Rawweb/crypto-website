@@ -42,7 +42,12 @@ const investmentPlanSchema = new mongoose.Schema({
     maxMultiplier: {
         type: Number,
         default: 3, // e.g. max total profit = 3x original amount
-    }
+    },
+
+    isActive: {
+        type: Boolean,
+        default: true,
+    },
 
 }, { timestamps: true });
 

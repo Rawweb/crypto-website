@@ -1,11 +1,21 @@
-const express = require('express')
-const { notifyUser, notifyMultipleUsers, notifyAllUsers } = require('../controllers/adminNotificationController')
-const { protect, admin } = require('../middlewares/authMiddleware')
+const express = require('express');
+const { protect, admin } = require('../middlewares/authMiddleware');
+const {
+  getAdminNotifications,
+  getUnreadAdminNotificationCount,
+  markAdminAsRead,
+  markAllAdminAsRead,
+  deleteAdminNotification,
+  clearAdminNotifications,
+} = require('../controllers/adminNotificationController');
 
-const router = express.Router()
+const router = express.Router();
 
-router.post('/user', protect, admin, notifyUser)
-router.post('/users', protect, admin, notifyMultipleUsers)
-router.post('/broadcast', protect, admin, notifyAllUsers)
+router.get('/', protect, admin, getAdminNotifications);
+router.get('/unread-count', protect, admin, getUnreadAdminNotificationCount);
+router.patch('/:id/read', protect, admin, markAdminAsRead);
+router.patch('/read-all', protect, admin, markAllAdminAsRead);
+router.delete('/:id', protect, admin, deleteAdminNotification);
+router.delete('/', protect, admin, clearAdminNotifications);
 
-module.exports = router
+module.exports = router;

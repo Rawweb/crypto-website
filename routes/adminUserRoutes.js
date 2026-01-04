@@ -3,6 +3,7 @@ const {
   getAllUsers,
   getUserById,
   updateUser,
+  bulkUpdateUsers,
   verifyUserEmail,
   deleteUser,
   suspendUser,
@@ -16,6 +17,7 @@ const router = express.Router();
 router.get('/', protect, admin, getAllUsers);
 router.get('/:id', protect, admin, getUserById);
 router.put('/:id/update', protect, admin, updateUser);
+router.post('/bulk-update', protect, admin, bulkUpdateUsers);
 router.put('/:id/verify-email', protect, admin, verifyUserEmail);
 router.delete('/:id/delete', protect, admin, deleteUser);
 router.put('/:id/suspend', protect, admin, suspendUser);

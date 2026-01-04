@@ -6,6 +6,7 @@ const {
   getPendingWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,
+  getUserWallet,
 } = require('../controllers/walletController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 
@@ -17,5 +18,7 @@ router.post('/deposits/reject', protect, admin, rejectDeposit);
 router.get('/withdrawals/pending', protect, admin, getPendingWithdrawals);
 router.post('/withdrawal/approve', protect, admin, approveWithdrawal);
 router.post('/withdrawal/reject', protect, admin, rejectWithdrawal);
+router.get('/:userId', protect, admin, getUserWallet);
+
 
 module.exports = router;

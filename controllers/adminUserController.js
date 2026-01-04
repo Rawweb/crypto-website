@@ -97,6 +97,28 @@ const updateUser = async (req, res) => {
   }
 };
 
+// bulk update users
+const bulkUpdateUsers = async (req, res) => {
+  try {
+    const { userIds, status } = req.body;
+
+    if (!Array.isArray(userIds) || !status) {
+      return res.status(400).json({ message: 'Invalid payload' });
+    }
+
+    await User.updateMany(
+      { _id: { $in: userIds } },
+      { status }
+    );
+
+    res.json({ message: 'Users updated' });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
 // manually verify user email
 const verifyUserEmail = async (req, res) => {
   try {
@@ -213,6 +235,7 @@ module.exports = {
   getAllUsers,
   getUserById,
   updateUser,
+  bulkUpdateUsers,
   verifyUserEmail,
   deleteUser,
   suspendUser,

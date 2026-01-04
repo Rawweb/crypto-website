@@ -19,7 +19,9 @@ const User = require('../models/userModel');
 // GET all investment plans
 const getAllPlans = async (req, res) => {
   try {
-    const plans = await InvestmentPlan.find().sort({ createdAt: -1 });
+    const plans = await InvestmentPlan.find().sort({
+      createdAt: -1,
+    });
     return res.json(plans);
   } catch (error) {
     console.log(error);
@@ -44,6 +46,13 @@ const investInPlan = async (req, res) => {
     const plan = await InvestmentPlan.findById(planId);
     if (!plan) {
       return res.status(404).json({ message: 'Plan not found' });
+    }
+
+    // check plan status
+    if (!plan.isActive) {
+      return res.status(400).json({
+        message: 'This investment plan is currently unavailable',
+      });
     }
 
     // validate amount against plan rules
@@ -167,6 +176,12 @@ const investInPlan = async (req, res) => {
       }
     }
 
+    if (!plan.isActive) {
+      return res.status(400).json({
+        message: 'This investment plan is currently unavailable',
+      });
+    }
+
     // 🔔 Auto notification: Investment created
     try {
       const preset = notificationPresets.INVESTMENT_CREATED;
@@ -252,99 +267,63 @@ const getSingleInvestment = async (req, res) => {
         ADMIN FUNCTION
 ============================ */
 
-// create investment plan
-const createPlan = async (req, res) => {
-  try {
-    const {
-      name,
-      minAmount,
-      maxAmount,
-      roi,
-      roiType,
-      durationDays,
-      maxMultiplier,
-    } = req.body;
-
-    if (roiType === 'daily' && durationDays < 1) {
-      return res.status(400).json({
-        message: 'Daily plans must be at least 1 day',
-      });
-    }
-
-    if (roiType === 'weekly' && durationDays < 7) {
-      return res.status(400).json({
-        message: 'Weekly plans must be at least 7 days',
-      });
-    }
-
-    if (roiType === 'monthly' && durationDays < 30) {
-      return res.status(400).json({
-        message: 'Monthly plans must be at least 30 days',
-      });
-    }
-
-    const plan = await InvestmentPlan.create({
-      name,
-      minAmount,
-      maxAmount,
-      roi,
-      roiType,
-      durationDays,
-      maxMultiplier: maxMultiplier || 3,
-    });
-
-    return res.json({
-      message: 'Investment plan created',
-      plan,
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: 'Server error' });
-  }
-};
-
 // get all investments
 const getAllInvestments = async (req, res) => {
   try {
-    const investments = await Investment.find()
+    let { page = 1, limit = 20, status, search } = req.query;
+
+    page = Number(page);
+    limit = Number(limit);
+
+    const query = {};
+
+    if (status) query.status = status;
+
+    if (search) {
+      query.$or = [{ 'userId.email': { $regex: search, $options: 'i' } }];
+    }
+
+    const total = await Investment.countDocuments(query);
+
+    const investments = await Investment.find(query)
       .populate('userId', 'email')
       .populate('planId')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
 
-    res.json(investments);
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: 'Server error' });
-  }
-};
-
-// edit plan
-const updatePlan = async (req, res) => {
-  try {
-    const { planId } = req.params;
-
-    const updated = await InvestmentPlan.findByIdAndUpdate(planId, req.body, {
-      new: true,
-    });
-
-    return res.json({
-      message: 'Plan updated',
-      plan: updated,
+    res.json({
+      investments,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
-// delete plan
-const deletePlan = async (req, res) => {
+// CANCEL investment
+const cancelInvestment = async (req, res) => {
   try {
-    await InvestmentPlan.findByIdAndDelete(req.params.planId);
-    return res.json({ message: 'Plan deleted' });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: 'Server error' });
+    const inv = await Investment.findById(req.params.id);
+
+    if (!inv) {
+      return res.status(404).json({ message: 'Investment not found' });
+    }
+
+    if (inv.status !== 'active') {
+      return res.status(400).json({ message: 'Investment not active' });
+    }
+
+    inv.status = 'cancelled';
+    await inv.save();
+
+    res.json({ message: 'Investment cancelled' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -510,10 +489,8 @@ module.exports = {
   investInPlan,
   getUserInvestments,
   getSingleInvestment,
-  createPlan,
   getAllInvestments,
-  updatePlan,
-  deletePlan,
+  cancelInvestment,
   generateProfits,
   closeCompletedInvestments,
 };
