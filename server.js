@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
+
 // load env vars
 dotenv.config();
 
@@ -43,11 +44,9 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'http://localhost:5173',
-  'https://raw-crypto.netlify.app',
-].filter(Boolean);
+const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173'].filter(
+  Boolean
+);
 
 console.log('Allowed origins:', allowedOrigins);
 
@@ -89,7 +88,7 @@ app.use('/api/admin/investment-plans', adminInvestmentPlanRoutes);
 app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin/transactions', adminTransactionLogRoutes);
 app.use('/api/admin/stats', adminStatsRoutes);
-app.use('/api/admin/notifications', adminUserNotificationRoutes);
+app.use('/api/admin/notifications', adminUserNotificationRoutes)
 app.use('/api/admin/notifications', adminNotificationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/wallet/transactions', transactionLogRoutes);

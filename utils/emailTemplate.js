@@ -10,9 +10,9 @@ const emailSuccesfulTemplate = username => `
       box-shadow:0 4px 12px rgba(0,0,0,0.08);
     ">
 
-      // <div style="text-align:center; margin-bottom:20px;">
-      //   <img src="cid:logo" alt="RawCrypto Logo" style="height:45px;" />
-      // </div>
+      <div style="text-align:center; margin-bottom:20px;">
+       <img src="https://raw-crypto.netlify.app/logo.png" alt="RawCrypto" style="height:45px;" />
+      </div>
 
       <h2 style="color:#111827; text-align:center;">
         Email Verified Successfully
@@ -93,9 +93,9 @@ const passwordSuccessfulTemplate = username => `
       box-shadow:0 4px 12px rgba(0,0,0,0.08);
     ">
 
-      // <div style="text-align:center; margin-bottom:20px;">
-      //   <img src="cid:logo" alt="RawCrypto Logo" style="height:45px;" />
-      // </div>
+      <div style="text-align:center; margin-bottom:20px;">
+       <img src="https://raw-crypto.netlify.app/logo.png" alt="RawCrypto" style="height:45px;" />
+      </div>
 
       <h2 style="color:#111827; text-align:center;">
         Password Reset Successful
@@ -178,9 +178,9 @@ const notificationEmailTemplate = (username, title, content) => {
     ">
 
       <!-- LOGO -->
-      // <div style="margin-bottom:25px;">
-      //   <img src="cid:logo" style="height:45px;" alt="RawCrypto Logo" />
-      // </div>
+      <div style="margin-bottom:25px;">
+        <img src="https://raw-crypto.netlify.app/logo.png" alt="RawCrypto" style="height:45px;" />
+      </div>
 
       <!-- TITLE -->
       <h2 style="color:#111827;margin-bottom:10px;">
@@ -245,11 +245,8 @@ const notificationEmailTemplate = (username, title, content) => {
   `;
 };
 
-
-
-
 module.exports = {
   emailSuccesfulTemplate,
   passwordSuccessfulTemplate,
   notificationEmailTemplate,
-}
+};
