@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
+
 // load env vars
 dotenv.config();
 
@@ -39,6 +40,10 @@ const testMailRoutes = require('./routes/testMailRoutes');
 
 const app = express();
 
+//middlewares
+app.use(express.json());
+app.use(cookieParser());
+
 const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173'].filter(
   Boolean
 );
@@ -62,11 +67,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
-
-//middlewares
-app.use(express.json());
-app.use(cookieParser());
 
 //test
 app.get('/', (req, res) => {
@@ -88,7 +88,7 @@ app.use('/api/admin/investment-plans', adminInvestmentPlanRoutes);
 app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin/transactions', adminTransactionLogRoutes);
 app.use('/api/admin/stats', adminStatsRoutes);
-app.use('/api/admin/notifications', adminUserNotificationRoutes);
+app.use('/api/admin/notifications', adminUserNotificationRoutes)
 app.use('/api/admin/notifications', adminNotificationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/wallet/transactions', transactionLogRoutes);
