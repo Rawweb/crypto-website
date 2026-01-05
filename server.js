@@ -48,6 +48,8 @@ const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:5173'].filter(
   Boolean
 );
 
+console.log('Allowed origins:', allowedOrigins);
+
 const corsOptions = {
   origin(origin, callback) {
     if (!origin) return callback(null, true);
@@ -60,7 +62,7 @@ const corsOptions = {
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
